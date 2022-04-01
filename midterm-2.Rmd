@@ -1,0 +1,170 @@
+---
+title: "STAT 345 Midterm Project"
+font: 12pt
+date: "Due April 1"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+> "Our offense is like the Pythagorean Theorem. There is no answer!", _Shaquille O'Neal_
+
+
+```{r, echo=FALSE, include = FALSE, warning = FALSE, results='hide'}
+devtools::install_github("abresler/nbastatR", force=TRUE)
+```
+```{r, echo=FALSE, message = FALSE, results='hide', warning=FALSE}
+library(nbastatR)
+library(dplyr)
+library(ggplot2)
+shots_1 <- c()
+Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 20)
+for (i in c(2001,2006,2011,2016,2021, 2022)){
+  tmp = teams_shots(teams="Los Angeles Lakers", seasons = i)
+  shots_1 = rbind(shots_1, tmp)
+}
+###Creates a data set that includes season shot data from 2001, 2006, 2011, 2016, 2021, and 2022. Initialize an empty vector and loop through team shots to download data for the 6 seasons. Bind the rows for the 6 seasons together and store in shots_1 
+```
+
+
+```{r, echo=FALSE, message = FALSE, results='hide', warning=FALSE}
+court <- ggplot(data=data.frame(x=1,y=1),aes(x,y))+
+   ###outside box:
+geom_path(data=data.frame(x=c(-25,-25,25,25,-25),y=c(0,47,47,0,0)))+
+   ###solid FT semicircle above FT line:
+geom_path(data=data.frame(x=c(-6000:(-1)/1000,1:6000/1000),y=c(19+sqrt(6^2-c(-6000:(-1)/1000,1:6000/1000)^2))),aes(x=x,y=y))+
+   ###dashed FT semicircle below FT line:
+geom_path(data=data.frame(x=c(-6000:(-1)/1000,1:6000/1000),y=c(19-sqrt(6^2-c(-6000:(-1)/1000,1:6000/1000)^2))),aes(x=x,y=y),linetype='dashed')+
+   ###key:
+geom_path(data=data.frame(x=c(-8,-8,8,8,-8),y=c(0,19,19,0,0)))+
+   ###box inside the key:
+geom_path(data=data.frame(x=c(-6,-6,6,6,-6),y=c(0,19,19,0,0)))+
+   ###restricted area semicircle:
+geom_path(data=data.frame(x=c(-4000:(-1)/1000,1:4000/1000),y=c(5.25+sqrt(4^2-c(-4000:(-1)/1000,1:4000/1000)^2))),aes(x=x,y=y))+
+   ###halfcourt semicircle:
+geom_path(data=data.frame(x=c(-6000:(-1)/1000,1:6000/1000),y=c(47-sqrt(6^2-c(-6000:(-1)/1000,1:6000/1000)^2))),aes(x=x,y=y))+
+   ###rim:
+geom_path(data=data.frame(x=c(-750:(-1)/1000,1:750/1000,750:1/1000,-1:-750/1000),y=c(c(5.25+sqrt(0.75^2-c(-750:(-1)/1000,1:750/1000)^2)),c(5.25-sqrt(0.75^2-c(750:1/1000,-1:-750/1000)^2)))),aes(x=x,y=y))+
+   ###backboard:
+geom_path(data=data.frame(x=c(-3,3),y=c(4,4)),lineend='butt')+
+   ###three-point line:
+geom_path(data=data.frame(x=c(-22,-22,-22000:(-1)/1000,1:22000/1000,22,22),y=c(0,169/12,5.25+sqrt(23.75^2-c(-22000:(-1)/1000,1:22000/1000)^2),169/12,0)),aes(x=x,y=y))+
+   ###fix aspect ratio to 1:1
+coord_fixed() 
+```
+
+```{r, echo=FALSE, message = FALSE, results='hide', warning=FALSE}
+court + 
+#Plots court made above
+facet_wrap(~yearSeason) +
+#Creates an identical graph for each of the 6 seasons
+stat_summary_hex(data = shots_1, aes(x= locationX/10.5, y= locationY/10+6, z = as.numeric(isShotMade)), geom="hex", bins = 30, binwidth = 6, alpha=.92, fun = function(z) sum(z)/length(z))+ 
+   #locationX is divided by 10.5 and locationY is divided by 10 then added to 6 to scale the shots to the graph. Bins the shots by 30 hexagons with width 5.  Function is used to determine proportion of shots made to use for the coloring
+   ggtitle("Shots Made by Location for the Los Angeles Lakers")+
+   #Gives the chart a title
+scale_fill_gradient2(low = "gold", mid = "purple", high = "purple4", name = "Proportion of Shots Made", midpoint = .5) +
+   #Creates a continuous color scale starting at gold and transitioning to purple
+theme_classic()+theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+theme(axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+#Removes the axis ticks and values
+```
+
+
+Summary:
+
+   - In 2006 and 2011, more shots were made at the top of the key and the free throw line        compared to the other seasons
+   - Almost every shot over the years was missed behind the half court line
+   - In 2021 and 2022, more shots were made close to the basket than the other seasons
+   - 3 point shots on the lower right side of the court in 2011 were made more than the          other seasons
+   - Percentage of shots made in 2016 was on average lower than the other seasons
+    
+    
+\newpage
+Report: \newline 
+\newline
+In 2006 and 2011, there is a higher amount of darker purple hexagons by the top of the key and the free throw line. In 2001, 2021, and 2022, the hexagons in these areas are lighter purple, meaning less shots were made. Additionally, the left top of the key has a higher percent made than the right side in 2006 and 2011. Looking at the shots attempted behind the half court line, almost all of them for each season are gold. This means none of these shots were made. The shots attempted behind the half court line were most likely made because time is going to run out, and they were not necessarily meant to be made. When examining the 3 hexagons in each season that surround the basket, we can conclude seasons 2021 and 2022 have the darkest purple hexagons, implying that more shots were made under the basket these seasons than previous seasons. 2011 also had a higher percent made under the basket than 2001, 2006, and 2016. In 2011, shots attempted from the right side of the 3 point line were more likely to be made than shots made from the same position on the left side. Shots attempted from the right side of the 3 point line in 2011 were more consistent than any other 3 point shot in all of the seasons because of the darker purple color. Looking at the season graphs as a whole, 2016 had the most lighter purple and gold hexagons. Thus, 2016 had a lower average percentage shots made than any of the other seasons listed. The remaining 5 seasons look to have about the same amount of dark purple, light purple, and gold hexagons, implying the average percentage shots made was most likely around the same for these seasons. 
+
+
+
+
+\newpage
+```{r, echo=FALSE, message = FALSE, results='hide', warning=FALSE, out.width="53%"}
+players <- nba_players()
+#Download information about past and present NBA players
+shots_players <- shots_1 %>% left_join(players, by = "idPlayer")
+#Join the shots data and player data by player ID
+count <- shots_players %>% group_by(yearSeason) %>% count(namePlayer.y) %>% arrange(desc(n), .by_group = T) %>% top_n(n=6)
+#Finds the 6 players who shot the most shots for each of the 6 seasons. 
+top6_players <- left_join(count, shots_players, by = "namePlayer.y")
+#Joins the top 6 players data with the shots data by the name of the player
+players_2001 <- top6_players %>% filter(yearSeason.x==2001)
+players_2006 <- top6_players %>% filter(yearSeason.x==2006)
+players_2011 <- top6_players %>% filter(yearSeason.x==2011)
+players_2016 <- top6_players %>% filter(yearSeason.x==2016)
+players_2021 <- top6_players %>% filter(yearSeason.x==2021)
+players_2022 <- top6_players %>% filter(yearSeason.x==2022)
+#Creates a data frame for each of the 6 seasons with the shot information for the top 6 players from that season
+players_2001$zoneRange <- factor(players_2001$zoneRange, levels=c("Less Than 8 ft.", "8-16 ft.", "16-24 ft.", "24+ ft.", "Back Court Shot"))
+#Changes the zoneRange variable to a factor, and orders them from closet to the bakset to farthest from the basket
+players_2001 %>% 
+   ggplot(aes(x = zoneRange)) +
+   geom_bar(aes(fill= namePlayer.x)) + 
+   #Creates a stacked bar graph for zoneRange by the top 6 players
+   scale_fill_manual(values = c("mediumpurple1", "purple4","gold","goldenrod3", "grey65", "black"), name = "Name of Player")+
+   #Specifies the 6 colors for the 6 top players for each season
+   theme_classic()+
+   #Changes theme to classic
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+   #Changes the position of the x axis labels to vertical. 
+   xlab("Zone Range")+
+   #X axis title
+   ylab("Count of Shots")+
+   #Y axis title
+   ggtitle("Top 6 Player Shots by Zone for 2001")
+#Title for the graph
+players_2006$zoneRange <- factor(players_2006$zoneRange, levels=c("Less Than 8 ft.", "8-16 ft.", "16-24 ft.", "24+ ft.", "Back Court Shot"))
+players_2006 %>% ggplot(aes(x = zoneRange)) +geom_bar(aes(fill= namePlayer.x))  + 
+   scale_fill_manual(values = c("mediumpurple1", "purple4","gold","goldenrod3", "grey65", "black"), name = "Name of Player")+
+   theme_classic()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+xlab("Zone Range")+ylab("Count of Shots")+ggtitle("Top 6 Player Shots by Zone for 2006")
+#Creates the same graph as above for 2001 but for the 2006 season instead 
+players_2011$zoneRange <- factor(players_2011$zoneRange, levels=c("Less Than 8 ft.", "8-16 ft.", "16-24 ft.", "24+ ft.", "Back Court Shot"))
+players_2011 %>% ggplot(aes(x = zoneRange)) +geom_bar(aes(fill= namePlayer.x))  + 
+   scale_fill_manual(values = c("mediumpurple1", "purple4","gold","goldenrod3", "grey65", "black"), name = "Name of Player")+
+   theme_classic()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+xlab("Zone Range")+ylab("Count of Shots")+ggtitle("Top 6 Player Shots by Zone for 2011")
+#Creates the same graph as above for 2001 but for the 2011 season instead
+players_2016$zoneRange <- factor(players_2016$zoneRange, levels=c("Less Than 8 ft.", "8-16 ft.", "16-24 ft.", "24+ ft.", "Back Court Shot"))
+players_2016 %>% ggplot(aes(x = zoneRange)) +geom_bar(aes(fill= namePlayer.x))  + 
+   scale_fill_manual(values = c("mediumpurple1", "purple4","gold","goldenrod3", "grey65", "black"), name = "Name of Player")+
+   theme_classic()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+xlab("Zone Range")+ylab("Count of Shots")+ggtitle("Top 6 Player Shots by Zone for 2016")
+#Creates the same graph as above for 2001 but for the 2016 season instead
+players_2021$zoneRange <- factor(players_2021$zoneRange, levels=c("Less Than 8 ft.", "8-16 ft.", "16-24 ft.", "24+ ft.", "Back Court Shot"))
+players_2021 %>% ggplot(aes(x = zoneRange)) +geom_bar(aes(fill= namePlayer.x))  + 
+   scale_fill_manual(values = c("mediumpurple1", "purple4","gold","goldenrod3", "grey65", "black"), name = "Name of Player")+
+   theme_classic()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+xlab("Zone Range")+ylab("Count of Shots")+ggtitle("Top 6 Player Shots by Zone for 2021")
+#Creates the same graph as above for 2021 but for the 2006 season instead
+players_2022$zoneRange <- factor(players_2022$zoneRange, levels=c("Less Than 8 ft.", "8-16 ft.", "16-24 ft.", "24+ ft.", "Back Court Shot"))
+players_2022 %>% ggplot(aes(x = zoneRange)) +geom_bar(aes(fill= namePlayer.x))  + 
+   scale_fill_manual(values = c("mediumpurple1", "purple4","gold","goldenrod3", "grey65", "black"), name = "Name of Player")+
+   theme_classic()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+xlab("Zone Range")+ylab("Count of Shots")+ggtitle("Top 6 Player Shots by Zone for 2022")
+#Creates the same graph as above for 2001 but for the 2022 season instead
+```
+Summary:
+
+   - In these graphs, the zone range of the shots for the same 6 seasons as above are broken      up by the top 6 players for each season. 
+   - In 2001, 2006, 2011, and 2016, Kobe Bryant shot the most shots overall, and he shot the      most from every zone on the court. 
+   - In the 2021 and 2022 seasons, LeBron James shot the most overall, and he shot the most      from every zone on the court except for the 8-16 ft. range. Anthony Davis shot the most      shots from the 8-16 ft. range for these 2 seasons.
+   - In 2021 and 2022, the amount of shots in each zone is more spread out over each top 6       player than the previous seasons. 
+
+
+
+
+  
+  
+  
+  
+
+
